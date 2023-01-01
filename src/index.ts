@@ -35,6 +35,11 @@ export interface ContainerOptions {
   volumes?: string[];
   image: string;
   tag?: string;
+  cpuPeriod?: number;
+  cpuQuota?: number;
+  cpus?: number;
+  memory?: string;
+  memorySwap?: string;
 }
 
 export class Container {
@@ -47,6 +52,11 @@ export class Container {
   volumes: string[] = [];
   image: string;
   tag = "latest";
+  cpuPeriod = 0;
+  cpuQuota = 0;
+  cpus = 0;
+  memory = "";
+  memorySwap = "";
 
   constructor(containerOptions: ContainerOptions) {
     for (const key in containerOptions) {
@@ -62,6 +72,10 @@ export class Container {
     return await runCmd(`docker stop ${this.name}`);
   }
 
+  async kill() {
+    return await runCmd(`docker kill ${this.name}`);
+  }
+
   async restart() {
     return await runCmd(`docker restart ${this.name}`);
   }
@@ -72,6 +86,12 @@ export class Container {
         this.network ? `--network=${this.network}` : ""
       } ${this.name ? `--name ${this.name}` : ""} ${
         this.publish ? `-p ${this.publish}` : ""
+      } ${this.cpuPeriod ? `--cpu-period=${this.cpuPeriod}` : ""} ${
+        this.cpuQuota ? `--cpu-quota=${this.cpuQuota}` : ""
+      } ${this.cpus ? `--cpus=${this.cpus}` : ""} ${
+        this.memory ? `--memory=${this.memory}` : ""
+      } ${
+        this.memorySwap ? `--memory-swap=${this.memorySwap}` : ""
       } ${Object.entries(this.environments)
         .map(([k, v]) => `-e ${k}=${v}`)
         .join(" ")} ${this.volumes.map((v) => `-v ${v}`).join(" ")} ${
