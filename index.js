@@ -35,6 +35,11 @@ class Container {
         this.environments = {};
         this.volumes = [];
         this.tag = "latest";
+        this.cpuPeriod = 0;
+        this.cpuQuota = 0;
+        this.cpus = 0;
+        this.memory = "";
+        this.memorySwap = "";
         for (const key in containerOptions) {
             this[key] = containerOptions[key];
         }
@@ -49,6 +54,11 @@ class Container {
             return yield runCmd(`docker stop ${this.name}`);
         });
     }
+    kill() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield runCmd(`docker kill ${this.name}`);
+        });
+    }
     restart() {
         return __awaiter(this, void 0, void 0, function* () {
             return yield runCmd(`docker restart ${this.name}`);
@@ -56,7 +66,18 @@ class Container {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield runCmd(`docker run ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${this.network ? `--network=${this.network}` : ""} ${this.name ? `--name ${this.name}` : ""} ${this.publish ? `-p ${this.publish}` : ""} ${Object.entries(this.environments)
+            if (this.network) {
+                try {
+                    const stdout = yield (0, exports.createNetwork)({ name: this.network });
+                    if (stdout) {
+                        console.log(stdout);
+                    }
+                }
+                catch (err) {
+                    console.log(err.message);
+                }
+            }
+            return yield runCmd(`docker run ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${this.network ? `--network=${this.network}` : ""} ${this.name ? `--name ${this.name}` : ""} ${this.publish ? `-p ${this.publish}` : ""} ${this.cpuPeriod ? `--cpu-period=${this.cpuPeriod}` : ""} ${this.cpuQuota ? `--cpu-quota=${this.cpuQuota}` : ""} ${this.cpus ? `--cpus=${this.cpus}` : ""} ${this.memory ? `--memory=${this.memory}` : ""} ${this.memorySwap ? `--memory-swap=${this.memorySwap}` : ""} ${Object.entries(this.environments)
                 .map(([k, v]) => `-e ${k}=${v}`)
                 .join(" ")} ${this.volumes.map((v) => `-v ${v}`).join(" ")} ${this.image}:${this.tag}`);
         });

@@ -81,6 +81,16 @@ export class Container {
   }
 
   async run() {
+    if (this.network) {
+      try {
+        const stdout = await createNetwork({ name: this.network });
+        if (stdout) {
+          console.log(stdout);
+        }
+      } catch (err) {
+        console.log(err.message);
+      }
+    }
     return await runCmd(
       `docker run ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${
         this.network ? `--network=${this.network}` : ""

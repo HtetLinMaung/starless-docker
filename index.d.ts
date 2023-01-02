@@ -19,6 +19,11 @@ export interface ContainerOptions {
     volumes?: string[];
     image: string;
     tag?: string;
+    cpuPeriod?: number;
+    cpuQuota?: number;
+    cpus?: number;
+    memory?: string;
+    memorySwap?: string;
 }
 export declare class Container {
     name: string;
@@ -30,9 +35,15 @@ export declare class Container {
     volumes: string[];
     image: string;
     tag: string;
+    cpuPeriod: number;
+    cpuQuota: number;
+    cpus: number;
+    memory: string;
+    memorySwap: string;
     constructor(containerOptions: ContainerOptions);
     start(): Promise<any>;
     stop(): Promise<any>;
+    kill(): Promise<any>;
     restart(): Promise<any>;
     run(): Promise<any>;
     logs(): Promise<any>;
