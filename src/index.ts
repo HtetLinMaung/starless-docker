@@ -43,7 +43,7 @@ import { spawn } from "node:child_process";
 //   }
 // }
 
-async function runSpawn(
+export async function runSpawn(
   cmd: string,
   options: any = {},
   cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},

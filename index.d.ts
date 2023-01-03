@@ -1,3 +1,4 @@
+export declare function runSpawn(cmd: string, options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean): Promise<string>;
 export interface StringMap {
     [key: string]: string;
 }

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = void 0;
+exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
 const node_child_process_1 = require("node:child_process");
 function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, log = false) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -64,6 +64,7 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
         });
     });
 }
+exports.runSpawn = runSpawn;
 class Container {
     constructor(containerOptions) {
         this.autoRemove = false;
