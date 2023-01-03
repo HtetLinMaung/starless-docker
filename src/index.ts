@@ -281,14 +281,17 @@ export class Container {
   }
 
   async logs(
-    logOptions: LogOptions,
+    logOptions: LogOptions = {},
     cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
     waitUntilClose = true
   ) {
+    const follow = logOptions.follow || false;
+    const until = logOptions.until || "";
+    const since = logOptions.since || "";
     return await runSpawn(
-      `docker logs ${logOptions.follow ? "--follow" : ""} ${
-        logOptions.since ? `--until=${logOptions.until}` : ""
-      } ${logOptions.since ? `--since ${logOptions.since}` : ""} ${this.name}`,
+      `docker logs ${follow ? "--follow" : ""} ${
+        until ? `--until=${until}` : ""
+      } ${since ? `--since ${since}` : ""} ${this.name}`,
       this.cmdOptions,
       cb,
       waitUntilClose,
