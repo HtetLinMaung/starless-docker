@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 
 // async function runCmd(
 //   cmd: string,
@@ -43,12 +43,18 @@ import { spawn } from "node:child_process";
 //   }
 // }
 
+export interface RunSpawnResponse {
+  result: string;
+  child: ChildProcessWithoutNullStreams;
+}
+
 export async function runSpawn(
   cmd: string,
   options: any = {},
   cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+  waitUntilClose = true,
   log = false
-): Promise<string> {
+): Promise<ChildProcessWithoutNullStreams | string> {
   if (log) {
     console.log(`> ${cmd}`);
   }
@@ -86,19 +92,23 @@ export async function runSpawn(
     result += stderr;
     cb(null, stderr, null, null);
   });
-  return new Promise((resolve, reject) => {
-    child.on("error", (error) => {
-      if (log) {
-        console.error(error.message);
-      }
-      cb(null, null, error, null);
-      reject(error);
+  if (waitUntilClose) {
+    return new Promise((resolve, reject) => {
+      child.on("error", (error) => {
+        if (log) {
+          console.error(error.message);
+        }
+        cb(null, null, error, null);
+        reject(error);
+      });
+      child.on("close", (code) => {
+        cb(null, null, null, code);
+        resolve(result);
+      });
     });
-    child.on("close", (code) => {
-      cb(null, null, null, code);
-      resolve(result);
-    });
-  });
+  } else {
+    return child;
+  }
 }
 
 export interface StringMap {
@@ -111,6 +121,7 @@ export interface NetworkOptions {
   log?: boolean;
   cmdType?: string;
   cmdOptions?: any;
+  waitUntilClose?: boolean;
 }
 
 export interface ImageOptions {
@@ -121,6 +132,7 @@ export interface ImageOptions {
   log?: boolean;
   cmdType?: string;
   cmdOptions?: any;
+  waitUntilClose?: boolean;
 }
 
 export interface ContainerOptions {
@@ -138,10 +150,17 @@ export interface ContainerOptions {
   cpus?: number;
   memory?: string;
   memorySwap?: string;
+  restartContainer?: string;
 
   log?: boolean;
   cmdType?: string;
   cmdOptions?: any;
+}
+
+export interface LogOptions {
+  follow?: boolean;
+  until?: string;
+  since?: string;
 }
 
 export class Container {
@@ -159,6 +178,8 @@ export class Container {
   cpus = 0;
   memory = "";
   memorySwap = "";
+  restartContainer = "";
+
   log = false;
   cmdOptions = {};
   cmdType = "exec";
@@ -170,51 +191,60 @@ export class Container {
   }
 
   async start(
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
   ) {
     return await runSpawn(
       `docker start ${this.name}`,
       this.cmdOptions,
       cb,
+      waitUntilClose,
       this.log
     );
   }
 
   async stop(
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
   ) {
     return await runSpawn(
       `docker stop ${this.name}`,
       this.cmdOptions,
       cb,
+      waitUntilClose,
       this.log
     );
   }
 
   async kill(
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
   ) {
     return await runSpawn(
       `docker kill ${this.name}`,
       this.cmdOptions,
       cb,
+      waitUntilClose,
       this.log
     );
   }
 
   async restart(
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
   ) {
     return await runSpawn(
       `docker restart ${this.name}`,
       this.cmdOptions,
       cb,
+      waitUntilClose,
       this.log
     );
   }
 
   async run(
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
   ) {
     if (this.network) {
       try {
@@ -226,7 +256,9 @@ export class Container {
       }
     }
     return await runSpawn(
-      `docker run ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${
+      `docker run ${
+        this.restartContainer ? `--restart=${this.restartContainer}` : ""
+      } ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${
         this.network ? `--network=${this.network}` : ""
       } ${this.name ? `--name ${this.name}` : ""} ${
         this.publish ? `-p ${this.publish}` : ""
@@ -243,17 +275,23 @@ export class Container {
       }:${this.tag}`,
       this.cmdOptions,
       cb,
+      waitUntilClose,
       this.log
     );
   }
 
   async logs(
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+    logOptions: LogOptions,
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
   ) {
     return await runSpawn(
-      `docker logs ${this.name}`,
+      `docker logs ${logOptions.follow ? "--follow" : ""} ${
+        logOptions.since ? `--until=${logOptions.until}` : ""
+      } ${logOptions.since ? `--since ${logOptions.since}` : ""} ${this.name}`,
       this.cmdOptions,
       cb,
+      waitUntilClose,
       this.log
     );
   }
@@ -270,6 +308,7 @@ export const buildImage = async (
       cwd: imageOptions.cwd || process.cwd(),
     },
     cb,
+    imageOptions.waitUntilClose || true,
     imageOptions.log || false
   );
 };
@@ -277,10 +316,12 @@ export const buildImage = async (
 export const runContainer = async (
   containerOptions: ContainerOptions,
   cb = (result: string) => {},
-  ccb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
+  ccb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+  waitUntilClose = true
 ) => {
   const container = new Container(containerOptions);
-  cb(await container.run(ccb));
+  const result = await container.run(ccb, waitUntilClose);
+  cb(result as string);
   return container;
 };
 
@@ -292,6 +333,7 @@ export const createNetwork = async (
     `docker network create ${networkOptions.name}`,
     { ...(networkOptions.cmdOptions || {}) },
     cb,
+    networkOptions.waitUntilClose || true,
     networkOptions.log || false
   );
 };

@@ -1,4 +1,10 @@
-export declare function runSpawn(cmd: string, options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean): Promise<string>;
+/// <reference types="node" />
+import { ChildProcessWithoutNullStreams } from "node:child_process";
+export interface RunSpawnResponse {
+    result: string;
+    child: ChildProcessWithoutNullStreams;
+}
+export declare function runSpawn(cmd: string, options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean, log?: boolean): Promise<ChildProcessWithoutNullStreams | string>;
 export interface StringMap {
     [key: string]: string;
 }
@@ -7,6 +13,7 @@ export interface NetworkOptions {
     log?: boolean;
     cmdType?: string;
     cmdOptions?: any;
+    waitUntilClose?: boolean;
 }
 export interface ImageOptions {
     image: string;
@@ -15,6 +22,7 @@ export interface ImageOptions {
     log?: boolean;
     cmdType?: string;
     cmdOptions?: any;
+    waitUntilClose?: boolean;
 }
 export interface ContainerOptions {
     name: string;
@@ -31,9 +39,15 @@ export interface ContainerOptions {
     cpus?: number;
     memory?: string;
     memorySwap?: string;
+    restartContainer?: string;
     log?: boolean;
     cmdType?: string;
     cmdOptions?: any;
+}
+export interface LogOptions {
+    follow?: boolean;
+    until?: string;
+    since?: string;
 }
 export declare class Container {
     name: string;
@@ -50,17 +64,18 @@ export declare class Container {
     cpus: number;
     memory: string;
     memorySwap: string;
+    restartContainer: string;
     log: boolean;
     cmdOptions: {};
     cmdType: string;
     constructor(containerOptions: ContainerOptions);
-    start(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
-    stop(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
-    kill(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
-    restart(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
-    run(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
-    logs(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
+    start(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    stop(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    kill(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    restart(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    run(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    logs(logOptions: LogOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
 }
-export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string>;
-export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<Container>;
-export declare const createNetwork: (networkOptions: NetworkOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string>;
+export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
+export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean) => Promise<Container>;
+export declare const createNetwork: (networkOptions: NetworkOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;

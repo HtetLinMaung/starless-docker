@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
 const node_child_process_1 = require("node:child_process");
-function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, log = false) {
+function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true, log = false) {
     return __awaiter(this, void 0, void 0, function* () {
         if (log) {
             console.log(`> ${cmd}`);
@@ -49,19 +49,24 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
             result += stderr;
             cb(null, stderr, null, null);
         });
-        return new Promise((resolve, reject) => {
-            child.on("error", (error) => {
-                if (log) {
-                    console.error(error.message);
-                }
-                cb(null, null, error, null);
-                reject(error);
+        if (waitUntilClose) {
+            return new Promise((resolve, reject) => {
+                child.on("error", (error) => {
+                    if (log) {
+                        console.error(error.message);
+                    }
+                    cb(null, null, error, null);
+                    reject(error);
+                });
+                child.on("close", (code) => {
+                    cb(null, null, null, code);
+                    resolve(result);
+                });
             });
-            child.on("close", (code) => {
-                cb(null, null, null, code);
-                resolve(result);
-            });
-        });
+        }
+        else {
+            return child;
+        }
     });
 }
 exports.runSpawn = runSpawn;
@@ -79,6 +84,7 @@ class Container {
         this.cpus = 0;
         this.memory = "";
         this.memorySwap = "";
+        this.restartContainer = "";
         this.log = false;
         this.cmdOptions = {};
         this.cmdType = "exec";
@@ -86,27 +92,27 @@ class Container {
             this[key] = containerOptions[key];
         }
     }
-    start(cb = (stdout, stderr, error, code) => { }) {
+    start(cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield runSpawn(`docker start ${this.name}`, this.cmdOptions, cb, this.log);
+            return yield runSpawn(`docker start ${this.name}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
-    stop(cb = (stdout, stderr, error, code) => { }) {
+    stop(cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield runSpawn(`docker stop ${this.name}`, this.cmdOptions, cb, this.log);
+            return yield runSpawn(`docker stop ${this.name}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
-    kill(cb = (stdout, stderr, error, code) => { }) {
+    kill(cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield runSpawn(`docker kill ${this.name}`, this.cmdOptions, cb, this.log);
+            return yield runSpawn(`docker kill ${this.name}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
-    restart(cb = (stdout, stderr, error, code) => { }) {
+    restart(cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield runSpawn(`docker restart ${this.name}`, this.cmdOptions, cb, this.log);
+            return yield runSpawn(`docker restart ${this.name}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
-    run(cb = (stdout, stderr, error, code) => { }) {
+    run(cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.network) {
                 try {
@@ -118,29 +124,30 @@ class Container {
                     }
                 }
             }
-            return yield runSpawn(`docker run ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${this.network ? `--network=${this.network}` : ""} ${this.name ? `--name ${this.name}` : ""} ${this.publish ? `-p ${this.publish}` : ""} ${this.cpuPeriod ? `--cpu-period=${this.cpuPeriod}` : ""} ${this.cpuQuota ? `--cpu-quota=${this.cpuQuota}` : ""} ${this.cpus ? `--cpus=${this.cpus}` : ""} ${this.memory ? `--memory=${this.memory}` : ""} ${this.memorySwap ? `--memory-swap=${this.memorySwap}` : ""} ${Object.entries(this.environments)
+            return yield runSpawn(`docker run ${this.restartContainer ? `--restart=${this.restartContainer}` : ""} ${this.autoRemove ? "--rm" : ""} ${this.detach ? "-d" : ""} ${this.network ? `--network=${this.network}` : ""} ${this.name ? `--name ${this.name}` : ""} ${this.publish ? `-p ${this.publish}` : ""} ${this.cpuPeriod ? `--cpu-period=${this.cpuPeriod}` : ""} ${this.cpuQuota ? `--cpu-quota=${this.cpuQuota}` : ""} ${this.cpus ? `--cpus=${this.cpus}` : ""} ${this.memory ? `--memory=${this.memory}` : ""} ${this.memorySwap ? `--memory-swap=${this.memorySwap}` : ""} ${Object.entries(this.environments)
                 .map(([k, v]) => `-e ${k}=${v}`)
-                .join(" ")} ${this.volumes.map((v) => `-v ${v}`).join(" ")} ${this.image}:${this.tag}`, this.cmdOptions, cb, this.log);
+                .join(" ")} ${this.volumes.map((v) => `-v ${v}`).join(" ")} ${this.image}:${this.tag}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
-    logs(cb = (stdout, stderr, error, code) => { }) {
+    logs(logOptions, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield runSpawn(`docker logs ${this.name}`, this.cmdOptions, cb, this.log);
+            return yield runSpawn(`docker logs ${logOptions.follow ? "--follow" : ""} ${logOptions.since ? `--until=${logOptions.until}` : ""} ${logOptions.since ? `--since ${logOptions.since}` : ""} ${this.name}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
 }
 exports.Container = Container;
 const buildImage = (imageOptions, cb = (stdout, stderr, error, code) => { }) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield runSpawn(`docker build -t ${imageOptions.image}:${imageOptions.tag || "latest"} .`, Object.assign(Object.assign({}, (imageOptions.cmdOptions || {})), { cwd: imageOptions.cwd || process.cwd() }), cb, imageOptions.log || false);
+    return yield runSpawn(`docker build -t ${imageOptions.image}:${imageOptions.tag || "latest"} .`, Object.assign(Object.assign({}, (imageOptions.cmdOptions || {})), { cwd: imageOptions.cwd || process.cwd() }), cb, imageOptions.waitUntilClose || true, imageOptions.log || false);
 });
 exports.buildImage = buildImage;
-const runContainer = (containerOptions, cb = (result) => { }, ccb = (stdout, stderr, error, code) => { }) => __awaiter(void 0, void 0, void 0, function* () {
+const runContainer = (containerOptions, cb = (result) => { }, ccb = (stdout, stderr, error, code) => { }, waitUntilClose = true) => __awaiter(void 0, void 0, void 0, function* () {
     const container = new Container(containerOptions);
-    cb(yield container.run(ccb));
+    const result = yield container.run(ccb, waitUntilClose);
+    cb(result);
     return container;
 });
 exports.runContainer = runContainer;
 const createNetwork = (networkOptions, cb = (stdout, stderr, error, code) => { }) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield runSpawn(`docker network create ${networkOptions.name}`, Object.assign({}, (networkOptions.cmdOptions || {})), cb, networkOptions.log || false);
+    return yield runSpawn(`docker network create ${networkOptions.name}`, Object.assign({}, (networkOptions.cmdOptions || {})), cb, networkOptions.waitUntilClose || true, networkOptions.log || false);
 });
 exports.createNetwork = createNetwork;
