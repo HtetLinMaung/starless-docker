@@ -129,12 +129,12 @@ class Container {
                 .join(" ")} ${this.volumes.map((v) => `-v ${v}`).join(" ")} ${this.image}:${this.tag}`, this.cmdOptions, cb, waitUntilClose, this.log);
         });
     }
-    logs(logOptions = {}, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
+    logs(logOptions = {}, cb = (stdout, stderr, error, code) => { }) {
         return __awaiter(this, void 0, void 0, function* () {
             const follow = logOptions.follow || false;
             const until = logOptions.until || "";
             const since = logOptions.since || "";
-            return yield runSpawn(`docker logs ${follow ? "--follow" : ""} ${until ? `--until=${until}` : ""} ${since ? `--since ${since}` : ""} ${this.name}`, this.cmdOptions, cb, waitUntilClose, this.log);
+            return yield runSpawn(`docker logs ${follow ? "--follow" : ""} ${until ? `--until=${until}` : ""} ${since ? `--since ${since}` : ""} ${this.name}`, this.cmdOptions, cb, !follow, this.log);
         });
     }
 }

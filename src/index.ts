@@ -282,8 +282,7 @@ export class Container {
 
   async logs(
     logOptions: LogOptions = {},
-    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
-    waitUntilClose = true
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {}
   ) {
     const follow = logOptions.follow || false;
     const until = logOptions.until || "";
@@ -294,7 +293,7 @@ export class Container {
       } ${since ? `--since ${since}` : ""} ${this.name}`,
       this.cmdOptions,
       cb,
-      waitUntilClose,
+      !follow,
       this.log
     );
   }

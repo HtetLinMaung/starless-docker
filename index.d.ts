@@ -74,7 +74,7 @@ export declare class Container {
     kill(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
     restart(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
     run(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
-    logs(logOptions?: LogOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    logs(logOptions?: LogOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string | ChildProcessWithoutNullStreams>;
 }
 export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean) => Promise<Container>;
