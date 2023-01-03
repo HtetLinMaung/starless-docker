@@ -3,11 +3,17 @@ export interface StringMap {
 }
 export interface NetworkOptions {
     name: string;
+    log?: boolean;
+    cmdType?: string;
+    cmdOptions?: any;
 }
 export interface ImageOptions {
     image: string;
     tag?: string;
     cwd?: string;
+    log?: boolean;
+    cmdType?: string;
+    cmdOptions?: any;
 }
 export interface ContainerOptions {
     name: string;
@@ -24,6 +30,9 @@ export interface ContainerOptions {
     cpus?: number;
     memory?: string;
     memorySwap?: string;
+    log?: boolean;
+    cmdType?: string;
+    cmdOptions?: any;
 }
 export declare class Container {
     name: string;
@@ -40,14 +49,17 @@ export declare class Container {
     cpus: number;
     memory: string;
     memorySwap: string;
+    log: boolean;
+    cmdOptions: {};
+    cmdType: string;
     constructor(containerOptions: ContainerOptions);
-    start(): Promise<any>;
-    stop(): Promise<any>;
-    kill(): Promise<any>;
-    restart(): Promise<any>;
-    run(): Promise<any>;
-    logs(): Promise<any>;
+    start(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
+    stop(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
+    kill(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
+    restart(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
+    run(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
+    logs(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string>;
 }
-export declare const buildImage: (imageOptions: ImageOptions) => Promise<any>;
-export declare const runContainer: (containerOptions: ContainerOptions, cb?: (stdout: any) => void) => Promise<Container>;
-export declare const createNetwork: (networkOptions: NetworkOptions) => Promise<any>;
+export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string>;
+export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<Container>;
+export declare const createNetwork: (networkOptions: NetworkOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string>;
