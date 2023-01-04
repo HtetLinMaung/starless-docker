@@ -12,8 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _1 = require(".");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        (yield (0, _1.runSpawn)("docker logs --follow nginx", {}, (stdout, stderr, error, code) => { }, true, true));
-        console.log("process finished");
+        const watcher = (0, _1.watchContainersStats)(["nginx"], (results, err) => {
+            console.log(results);
+        });
+        setTimeout(() => {
+            watcher.kill();
+        }, 4000);
+        console.log("do other stuff");
     });
 }
 main();

@@ -1,4 +1,5 @@
 /// <reference types="node" />
+/// <reference types="node" />
 import { ChildProcessWithoutNullStreams } from "node:child_process";
 export interface RunSpawnResponse {
     result: string;
@@ -48,6 +49,9 @@ export interface LogOptions {
     follow?: boolean;
     until?: string;
     since?: string;
+    details?: boolean;
+    tail?: number;
+    timestamps?: boolean;
 }
 export declare class Container {
     name: string;
@@ -79,3 +83,13 @@ export declare class Container {
 export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean) => Promise<Container>;
 export declare const createNetwork: (networkOptions: NetworkOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
+export declare const watchContainerStats: (idOrName: string, cb?: (result: any, error: any) => void, interval?: number, options?: any, log?: boolean) => {
+    intervalId: NodeJS.Timer;
+    kill: () => void;
+};
+export declare const watchContainersStats: (idOrNames: string[], cb?: (results: any[], error: any) => void, interval?: number, options?: any, log?: boolean) => {
+    intervalId: NodeJS.Timer;
+    kill: () => void;
+};
+export declare const statsContainer: (idOrName: string, options?: any, log?: boolean) => Promise<any>;
+export declare const statsContainers: (idOrNames: string[], options?: any, log?: boolean) => Promise<any[]>;

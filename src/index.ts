@@ -1,4 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { promisify } from "node:util";
+const exec = promisify(require("node:child_process").exec);
 
 // async function runCmd(
 //   cmd: string,
@@ -161,6 +163,9 @@ export interface LogOptions {
   follow?: boolean;
   until?: string;
   since?: string;
+  details?: boolean;
+  tail?: number;
+  timestamps?: boolean;
 }
 
 export class Container {
@@ -287,10 +292,15 @@ export class Container {
     const follow = logOptions.follow || false;
     const until = logOptions.until || "";
     const since = logOptions.since || "";
+    const details = logOptions.details || false;
+    const tail = logOptions.tail || 0;
+    const timestamps = logOptions.timestamps || false;
     return await runSpawn(
-      `docker logs ${follow ? "--follow" : ""} ${
-        until ? `--until=${until}` : ""
-      } ${since ? `--since ${since}` : ""} ${this.name}`,
+      `docker logs ${timestamps ? "-t" : ""} ${tail ? `-n ${tail}` : ""} ${
+        details ? "--details" : ""
+      } ${follow ? "-f" : ""} ${until ? `--until=${until}` : ""} ${
+        since ? `--since ${since}` : ""
+      } ${this.name}`,
       this.cmdOptions,
       cb,
       !follow,
@@ -338,4 +348,92 @@ export const createNetwork = async (
     networkOptions.waitUntilClose || true,
     networkOptions.log || false
   );
+};
+
+export const watchContainerStats = (
+  idOrName: string,
+  cb = (result: any, error) => {},
+  interval = 3,
+  options: any = {},
+  log = false
+) => {
+  statsContainer(idOrName, options, log)
+    .then((result) => cb(result, null))
+    .catch((err) => {
+      cb(null, err);
+      clearInterval(intervalId);
+    });
+  const intervalId = setInterval(() => {
+    statsContainer(idOrName, options, log)
+      .then((result) => cb(result, null))
+      .catch((err) => {
+        cb(null, err);
+        clearInterval(intervalId);
+      });
+  }, interval * 1000);
+  return {
+    intervalId,
+    kill: () => clearInterval(intervalId),
+  };
+};
+
+export const watchContainersStats = (
+  idOrNames: string[],
+  cb = (results: any[], error) => {},
+  interval = 3,
+  options: any = {},
+  log = false
+) => {
+  statsContainers(idOrNames, options, log)
+    .then((results) => cb(results, null))
+    .catch((err) => {
+      cb(null, err);
+      clearInterval(intervalId);
+    });
+  const intervalId = setInterval(() => {
+    statsContainers(idOrNames, options, log)
+      .then((results) => cb(results, null))
+      .catch((err) => {
+        cb(null, err);
+        clearInterval(intervalId);
+      });
+  }, interval * 1000);
+  return {
+    intervalId,
+    kill: () => clearInterval(intervalId),
+  };
+};
+
+export const statsContainer = async (
+  idOrName: string,
+  options: any = {},
+  log = false
+) => {
+  const results = await statsContainers([idOrName], options, log);
+  return results[0];
+};
+
+export const statsContainers = async (
+  idOrNames: string[],
+  options: any = {},
+  log = false
+) => {
+  let results = [];
+  for (const idOrName of idOrNames) {
+    const cmd = `docker stats ${idOrName.trim()} --no-stream --format "{{ json . }}"`;
+    if (log) {
+      console.log(`> ${cmd}`);
+    }
+    const { stdout, stderr } = await exec(cmd, options);
+    if (stdout) {
+      if (log) {
+        console.log(stdout);
+      }
+      results.push(JSON.parse(stdout));
+    }
+    if (stderr && log) {
+      console.log(stderr);
+    }
+  }
+  return results;
 };

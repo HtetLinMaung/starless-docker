@@ -9,8 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
+exports.statsContainers = exports.statsContainer = exports.watchContainersStats = exports.watchContainerStats = exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
 const node_child_process_1 = require("node:child_process");
+const node_util_1 = require("node:util");
+const exec = (0, node_util_1.promisify)(require("node:child_process").exec);
 function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true, log = false) {
     return __awaiter(this, void 0, void 0, function* () {
         const cmdarr = cmd
@@ -134,7 +136,10 @@ class Container {
             const follow = logOptions.follow || false;
             const until = logOptions.until || "";
             const since = logOptions.since || "";
-            return yield runSpawn(`docker logs ${follow ? "--follow" : ""} ${until ? `--until=${until}` : ""} ${since ? `--since ${since}` : ""} ${this.name}`, this.cmdOptions, cb, !follow, this.log);
+            const details = logOptions.details || false;
+            const tail = logOptions.tail || 0;
+            const timestamps = logOptions.timestamps || false;
+            return yield runSpawn(`docker logs ${timestamps ? "-t" : ""} ${tail ? `-n ${tail}` : ""} ${details ? "--details" : ""} ${follow ? "-f" : ""} ${until ? `--until=${until}` : ""} ${since ? `--since ${since}` : ""} ${this.name}`, this.cmdOptions, cb, !follow, this.log);
         });
     }
 }
@@ -154,3 +159,71 @@ const createNetwork = (networkOptions, cb = (stdout, stderr, error, code) => { }
     return yield runSpawn(`docker network create ${networkOptions.name}`, Object.assign({}, (networkOptions.cmdOptions || {})), cb, networkOptions.waitUntilClose || true, networkOptions.log || false);
 });
 exports.createNetwork = createNetwork;
+const watchContainerStats = (idOrName, cb = (result, error) => { }, interval = 3, options = {}, log = false) => {
+    (0, exports.statsContainer)(idOrName, options, log)
+        .then((result) => cb(result, null))
+        .catch((err) => {
+        cb(null, err);
+        clearInterval(intervalId);
+    });
+    const intervalId = setInterval(() => {
+        (0, exports.statsContainer)(idOrName, options, log)
+            .then((result) => cb(result, null))
+            .catch((err) => {
+            cb(null, err);
+            clearInterval(intervalId);
+        });
+    }, interval * 1000);
+    return {
+        intervalId,
+        kill: () => clearInterval(intervalId),
+    };
+};
+exports.watchContainerStats = watchContainerStats;
+const watchContainersStats = (idOrNames, cb = (results, error) => { }, interval = 3, options = {}, log = false) => {
+    (0, exports.statsContainers)(idOrNames, options, log)
+        .then((results) => cb(results, null))
+        .catch((err) => {
+        cb(null, err);
+        clearInterval(intervalId);
+    });
+    const intervalId = setInterval(() => {
+        (0, exports.statsContainers)(idOrNames, options, log)
+            .then((results) => cb(results, null))
+            .catch((err) => {
+            cb(null, err);
+            clearInterval(intervalId);
+        });
+    }, interval * 1000);
+    return {
+        intervalId,
+        kill: () => clearInterval(intervalId),
+    };
+};
+exports.watchContainersStats = watchContainersStats;
+const statsContainer = (idOrName, options = {}, log = false) => __awaiter(void 0, void 0, void 0, function* () {
+    const results = yield (0, exports.statsContainers)([idOrName], options, log);
+    return results[0];
+});
+exports.statsContainer = statsContainer;
+const statsContainers = (idOrNames, options = {}, log = false) => __awaiter(void 0, void 0, void 0, function* () {
+    let results = [];
+    for (const idOrName of idOrNames) {
+        const cmd = `docker stats ${idOrName.trim()} --no-stream --format "{{ json . }}"`;
+        if (log) {
+            console.log(`> ${cmd}`);
+        }
+        const { stdout, stderr } = yield exec(cmd, options);
+        if (stdout) {
+            if (log) {
+                console.log(stdout);
+            }
+            results.push(JSON.parse(stdout));
+        }
+        if (stderr && log) {
+            console.log(stderr);
+        }
+    }
+    return results;
+});
+exports.statsContainers = statsContainers;
