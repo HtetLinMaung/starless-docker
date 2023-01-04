@@ -13,9 +13,6 @@ exports.createNetwork = exports.runContainer = exports.buildImage = exports.Cont
 const node_child_process_1 = require("node:child_process");
 function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true, log = false) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (log) {
-            console.log(`> ${cmd}`);
-        }
         const cmdarr = cmd
             .split(" ")
             .map((arg) => arg.trim())
@@ -33,10 +30,13 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
         }
         let result = "";
         const child = (0, node_child_process_1.spawn)(command, args, options);
+        if (log) {
+            console.log(`[${child.pid}] > ${cmd}`);
+        }
         child.stdout.on("data", (data) => {
             const stdout = data + "";
             if (log) {
-                console.log(stdout);
+                console.log(`[${child.pid}] ${stdout}`);
             }
             result += stdout;
             cb(stdout, null, null, null);
@@ -44,7 +44,7 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
         child.stderr.on("data", (data) => {
             const stderr = data + "";
             if (log) {
-                console.error(stderr);
+                console.error(`[${child.pid}] ${stderr}`);
             }
             result += stderr;
             cb(null, stderr, null, null);
@@ -53,7 +53,7 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
             return new Promise((resolve, reject) => {
                 child.on("error", (error) => {
                     if (log) {
-                        console.error(error.message);
+                        console.error(`[${child.pid}] ${error.message}`);
                     }
                     cb(null, null, error, null);
                     reject(error);

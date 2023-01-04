@@ -55,9 +55,6 @@ export async function runSpawn(
   waitUntilClose = true,
   log = false
 ): Promise<ChildProcessWithoutNullStreams | string> {
-  if (log) {
-    console.log(`> ${cmd}`);
-  }
   const cmdarr = cmd
     .split(" ")
     .map((arg) => arg.trim())
@@ -76,10 +73,13 @@ export async function runSpawn(
 
   let result = "";
   const child = spawn(command, args, options);
+  if (log) {
+    console.log(`[${child.pid}] > ${cmd}`);
+  }
   child.stdout.on("data", (data) => {
     const stdout = data + "";
     if (log) {
-      console.log(stdout);
+      console.log(`[${child.pid}] ${stdout}`);
     }
     result += stdout;
     cb(stdout, null, null, null);
@@ -87,7 +87,7 @@ export async function runSpawn(
   child.stderr.on("data", (data) => {
     const stderr = data + "";
     if (log) {
-      console.error(stderr);
+      console.error(`[${child.pid}] ${stderr}`);
     }
     result += stderr;
     cb(null, stderr, null, null);
@@ -96,7 +96,7 @@ export async function runSpawn(
     return new Promise((resolve, reject) => {
       child.on("error", (error) => {
         if (log) {
-          console.error(error.message);
+          console.error(`[${child.pid}] ${error.message}`);
         }
         cb(null, null, error, null);
         reject(error);
