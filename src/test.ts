@@ -1,5 +1,6 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
 import {
+  dockerLogin,
   runSpawn,
   statsContainer,
   statsContainers,
@@ -25,12 +26,13 @@ async function main() {
   // const stats = await statsContainer("nginx", {}, true);
   // console.log(stats);
 
-  const watcher = watchContainersStats(["nginx"], (results, err) => {
-    console.log(results);
-  });
-  setTimeout(() => {
-    watcher.kill();
-  }, 4000);
-  console.log("do other stuff");
+  // const watcher = watchContainersStats(["nginx"], (results, err) => {
+  //   console.log(results);
+  // });
+  // setTimeout(() => {
+  //   watcher.kill();
+  // }, 4000);
+  // console.log("do other stuff");
+  await dockerLogin("htetlinmaung", "docker2551996", () => {}, true);
 }
 main();

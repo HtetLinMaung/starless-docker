@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.statsContainers = exports.statsContainer = exports.watchContainersStats = exports.watchContainerStats = exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
+exports.dockerLogin = exports.pushImage = exports.statsContainers = exports.statsContainer = exports.watchContainersStats = exports.watchContainerStats = exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
 const node_child_process_1 = require("node:child_process");
 const node_util_1 = require("node:util");
 const exec = (0, node_util_1.promisify)(require("node:child_process").exec);
@@ -227,3 +227,11 @@ const statsContainers = (idOrNames, options = {}, log = false) => __awaiter(void
     return results;
 });
 exports.statsContainers = statsContainers;
+const pushImage = (image, cb = (stdout, stderr, error, code) => { }, log = false) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield runSpawn(`docker push ${image}`, {}, cb, true, log);
+});
+exports.pushImage = pushImage;
+const dockerLogin = (username, password, cb = (stdout, stderr, error, code) => { }, log = false) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield runSpawn(`docker login -u ${username} -p ${password}`, {}, cb, true, log);
+});
+exports.dockerLogin = dockerLogin;

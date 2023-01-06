@@ -12,13 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _1 = require(".");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        const watcher = (0, _1.watchContainersStats)(["nginx"], (results, err) => {
-            console.log(results);
-        });
-        setTimeout(() => {
-            watcher.kill();
-        }, 4000);
-        console.log("do other stuff");
+        yield (0, _1.dockerLogin)("htetlinmaung", "docker2551996", () => { }, true);
     });
 }
 main();

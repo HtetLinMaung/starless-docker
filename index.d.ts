@@ -93,3 +93,5 @@ export declare const watchContainersStats: (idOrNames: string[], cb?: (results: 
 };
 export declare const statsContainer: (idOrName: string, options?: any, log?: boolean) => Promise<any>;
 export declare const statsContainers: (idOrNames: string[], options?: any, log?: boolean) => Promise<any[]>;
+export declare const pushImage: (image: string, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean) => Promise<string | ChildProcessWithoutNullStreams>;
+export declare const dockerLogin: (username: string, password: string, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean) => Promise<string | ChildProcessWithoutNullStreams>;

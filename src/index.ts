@@ -437,3 +437,26 @@ export const statsContainers = async (
   }
   return results;
 };
+
+export const pushImage = async (
+  image: string,
+  cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+  log = false
+) => {
+  return await runSpawn(`docker push ${image}`, {}, cb, true, log);
+};
+
+export const dockerLogin = async (
+  username: string,
+  password: string,
+  cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+  log = false
+) => {
+  return await runSpawn(
+    `docker login -u ${username} -p ${password}`,
+    {},
+    cb,
+    true,
+    log
+  );
+};
