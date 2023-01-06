@@ -5,7 +5,7 @@ export interface RunSpawnResponse {
     result: string;
     child: ChildProcessWithoutNullStreams;
 }
-export declare function runSpawn(cmd: string, options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean, log?: boolean): Promise<ChildProcessWithoutNullStreams | string>;
+export declare function runSpawn(cmd: string | string[], options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean, log?: boolean): Promise<ChildProcessWithoutNullStreams | string>;
 export interface StringMap {
     [key: string]: string;
 }

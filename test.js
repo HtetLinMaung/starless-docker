@@ -9,10 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const _1 = require(".");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        yield (0, _1.dockerLogin)("htetlinmaung", "docker2551996", () => { }, true);
+        console.log("do other stuff");
     });
 }
 main();

@@ -51,16 +51,19 @@ export interface RunSpawnResponse {
 }
 
 export async function runSpawn(
-  cmd: string,
+  cmd: string | string[],
   options: any = {},
   cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
   waitUntilClose = true,
   log = false
 ): Promise<ChildProcessWithoutNullStreams | string> {
-  const cmdarr = cmd
-    .split(" ")
-    .map((arg) => arg.trim())
-    .filter((arg) => arg);
+  const cmdarr =
+    typeof cmd == "string"
+      ? cmd
+          .split(" ")
+          .map((arg) => arg.trim())
+          .filter((arg) => arg)
+      : cmd;
   let command = "";
   let args = [];
   if (cmdarr.length) {
@@ -76,7 +79,9 @@ export async function runSpawn(
   let result = "";
   const child = spawn(command, args, options);
   if (log) {
-    console.log(`[${child.pid}] > ${cmd}`);
+    console.log(
+      `[${child.pid}] > ${typeof cmd == "string" ? cmd : cmd.join(" ")}`
+    );
   }
   child.stdout.on("data", (data) => {
     const stdout = data + "";
@@ -109,6 +114,15 @@ export async function runSpawn(
       });
     });
   } else {
+    child.on("error", (error) => {
+      if (log) {
+        console.error(`[${child.pid}] ${error.message}`);
+      }
+      cb(null, null, error, null);
+    });
+    child.on("close", (code) => {
+      cb(null, null, null, code);
+    });
     return child;
   }
 }
@@ -403,6 +417,70 @@ export const watchContainersStats = (
     kill: () => clearInterval(intervalId),
   };
 };
+
+interface WatchContainersOptions {
+  stream?: boolean;
+  // waitUntilClose?: boolean;
+  log?: boolean;
+  cmdOptions?: any;
+  scb?: (
+    stdout?: string,
+    stderr?: string,
+    error?: Error,
+    code?: number
+  ) => void;
+}
+
+// export const watchContainersStats = async (
+//   idOrNames: string[],
+//   cb = (results: any[], error) => {},
+//   options: WatchContainersOptions = {}
+// ) => {
+//   const stream = "stream" in options ? options.stream : true;
+//   const scb = options.scb || ((stdout, stderr, error, code) => {});
+//   // const waitUntilClose = options.waitUntilClose || true;
+//   const log = options.log || false;
+//   const cmdOptions = options.cmdOptions || {};
+
+//   const args = stream
+//     ? ["docker", "stats", ...idOrNames, "--format", `"{{ json . }}"`]
+//     : [
+//         "docker",
+//         "stats",
+//         ...idOrNames,
+//         "--no-stream",
+//         "--format",
+//         `"{{ json . }}"`,
+//       ];
+//   const childOrResult = await runSpawn(
+//     args,
+//     cmdOptions,
+//     (stdout, stderr, error, code) => {
+//       scb(stdout, stderr, error, code);
+//       if (stream && stdout && stdout.includes("{") && stdout.includes("}")) {
+//         cb(
+//           stdout
+//             .replace("[2J[H", "")
+//             .split("\n")
+//             .filter((item) => item.trim())
+//             .map((item) => JSON.parse(item.slice(1, item.length - 1))),
+//           error
+//         );
+//       }
+//     },
+//     !stream,
+//     log
+//   );
+//   if (stream) {
+//     return childOrResult as ChildProcessWithoutNullStreams;
+//   } else {
+//     const jsonStr = childOrResult as string;
+//     return jsonStr
+//       .slice(1, jsonStr.length - 2)
+//       .split("\n")
+//       .map((item) => JSON.parse(item));
+//   }
+// };
 
 export const statsContainer = async (
   idOrName: string,

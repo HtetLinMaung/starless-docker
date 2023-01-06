@@ -15,10 +15,12 @@ const node_util_1 = require("node:util");
 const exec = (0, node_util_1.promisify)(require("node:child_process").exec);
 function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true, log = false) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmdarr = cmd
-            .split(" ")
-            .map((arg) => arg.trim())
-            .filter((arg) => arg);
+        const cmdarr = typeof cmd == "string"
+            ? cmd
+                .split(" ")
+                .map((arg) => arg.trim())
+                .filter((arg) => arg)
+            : cmd;
         let command = "";
         let args = [];
         if (cmdarr.length) {
@@ -33,7 +35,7 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
         let result = "";
         const child = (0, node_child_process_1.spawn)(command, args, options);
         if (log) {
-            console.log(`[${child.pid}] > ${cmd}`);
+            console.log(`[${child.pid}] > ${typeof cmd == "string" ? cmd : cmd.join(" ")}`);
         }
         child.stdout.on("data", (data) => {
             const stdout = data + "";
@@ -67,6 +69,15 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
             });
         }
         else {
+            child.on("error", (error) => {
+                if (log) {
+                    console.error(`[${child.pid}] ${error.message}`);
+                }
+                cb(null, null, error, null);
+            });
+            child.on("close", (code) => {
+                cb(null, null, null, code);
+            });
             return child;
         }
     });
