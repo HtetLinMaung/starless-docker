@@ -449,10 +449,17 @@ export const pushImage = async (
 export const saveImage = async (
   image: string,
   output: string,
+  options: any,
   cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
   log = false
 ) => {
-  return await runSpawn(`docker save -o ${output} ${image}`, {}, cb, true, log);
+  return await runSpawn(
+    `docker save -o ${output} ${image}`,
+    options,
+    cb,
+    true,
+    log
+  );
 };
 
 export const loadImage = async (
