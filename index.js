@@ -231,7 +231,7 @@ const pushImage = (image, cb = (stdout, stderr, error, code) => { }, log = false
     return yield runSpawn(`docker push ${image}`, {}, cb, true, log);
 });
 exports.pushImage = pushImage;
-const saveImage = (image, output, options, cb = (stdout, stderr, error, code) => { }, log = false) => __awaiter(void 0, void 0, void 0, function* () {
+const saveImage = (image, output, options = {}, cb = (stdout, stderr, error, code) => { }, log = false) => __awaiter(void 0, void 0, void 0, function* () {
     return yield runSpawn(`docker save -o ${output} ${image}`, options, cb, true, log);
 });
 exports.saveImage = saveImage;

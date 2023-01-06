@@ -449,7 +449,7 @@ export const pushImage = async (
 export const saveImage = async (
   image: string,
   output: string,
-  options: any,
+  options: any = {},
   cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
   log = false
 ) => {
