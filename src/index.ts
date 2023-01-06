@@ -446,6 +446,23 @@ export const pushImage = async (
   return await runSpawn(`docker push ${image}`, {}, cb, true, log);
 };
 
+export const saveImage = async (
+  image: string,
+  output: string,
+  cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+  log = false
+) => {
+  return await runSpawn(`docker save -o ${output} ${image}`, {}, cb, true, log);
+};
+
+export const loadImage = async (
+  input: string,
+  cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+  log = false
+) => {
+  return await runSpawn(`docker load -i ${input}`, {}, cb, true, log);
+};
+
 export const dockerLogin = async (
   username: string,
   password: string,
