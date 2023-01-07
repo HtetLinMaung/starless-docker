@@ -32,6 +32,11 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
         if (!command) {
             throw new Error("Invalid command!");
         }
+        let inputs = [];
+        if (options.inputs) {
+            inputs = options.inputs;
+            delete options.inputs;
+        }
         let result = "";
         const child = (0, node_child_process_1.spawn)(command, args, options);
         if (log) {
@@ -53,6 +58,12 @@ function runSpawn(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, 
             result += stderr;
             cb(null, stderr, null, null);
         });
+        if (inputs.length) {
+            for (const input of inputs) {
+                child.stdin.write(`${input}\n`);
+            }
+            child.stdin.end();
+        }
         if (waitUntilClose) {
             return new Promise((resolve, reject) => {
                 child.on("error", (error) => {
@@ -151,6 +162,14 @@ class Container {
             const tail = logOptions.tail || 0;
             const timestamps = logOptions.timestamps || false;
             return yield runSpawn(`docker logs ${timestamps ? "-t" : ""} ${tail ? `-n ${tail}` : ""} ${details ? "--details" : ""} ${follow ? "-f" : ""} ${until ? `--until=${until}` : ""} ${since ? `--since ${since}` : ""} ${this.name}`, this.cmdOptions, cb, !follow, this.log);
+        });
+    }
+    exec(cmd, options = {}, cb = (stdout, stderr, error, code) => { }, waitUntilClose = true) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const command = typeof cmd == "string"
+                ? `docker exec ${this.name} ${cmd}`
+                : ["docker", "exec", this.name, ...cmd];
+            return yield runSpawn(command, options, cb, waitUntilClose, this.log);
         });
     }
 }

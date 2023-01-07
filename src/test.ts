@@ -29,6 +29,23 @@ async function main() {
   // await dockerLogin("htetlinmaung", "docker2551996", () => {}, true);
 
   // console.log(results);
+
+  const child = (await runSpawn(
+    "docker exec -i nginx bash",
+    {
+      // inputs: ["ls"],
+    },
+    () => {},
+    false,
+    true
+  )) as ChildProcessWithoutNullStreams;
   console.log("do other stuff");
+  child.stdin.write("ls\n");
+  // child.stdin.cork();
+  setTimeout(() => {
+    console.log("timeout");
+    child.stdin.write("ls etc\n");
+    child.stdin.end();
+  }, 3000);
 }
 main();

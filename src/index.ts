@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { stdin } from "node:process";
 import { promisify } from "node:util";
 const exec = promisify(require("node:child_process").exec);
 
@@ -76,6 +77,11 @@ export async function runSpawn(
     throw new Error("Invalid command!");
   }
 
+  let inputs: string[] = [];
+  if (options.inputs) {
+    inputs = options.inputs;
+    delete options.inputs;
+  }
   let result = "";
   const child = spawn(command, args, options);
   if (log) {
@@ -99,6 +105,13 @@ export async function runSpawn(
     result += stderr;
     cb(null, stderr, null, null);
   });
+  if (inputs.length) {
+    for (const input of inputs) {
+      child.stdin.write(`${input}\n`);
+    }
+    child.stdin.end();
+  }
+
   if (waitUntilClose) {
     return new Promise((resolve, reject) => {
       child.on("error", (error) => {
@@ -320,6 +333,19 @@ export class Container {
       !follow,
       this.log
     );
+  }
+
+  async exec(
+    cmd: string | string[],
+    options: any = {},
+    cb = (stdout?: string, stderr?: string, error?: Error, code?: number) => {},
+    waitUntilClose = true
+  ) {
+    const command =
+      typeof cmd == "string"
+        ? `docker exec ${this.name} ${cmd}`
+        : ["docker", "exec", this.name, ...cmd];
+    return await runSpawn(command, options, cb, waitUntilClose, this.log);
   }
 }
 
