@@ -1,0 +1,1 @@
+{"Command":"\"","CreatedAt":"2023-01-04 04:45:36 +0630 +0630","ID":"32ea0b86a1de","Image":"nginx","Labels":"maintainer=NGINX Docker Maintainers \\u003cdocker-maint@nginx.com\\u003e","LocalVolumes":"0","Mounts":"","Names":"nginx","Networks":"bridge","Ports":"80/tcp","RunningFor":"7 days ago","Size":"1.15kB (virtual 135MB)","State":"running","Status":"Up 5 minutes"}

@@ -1,5 +1,4 @@
 /// <reference types="node" />
-/// <reference types="node" />
 import { ChildProcessWithoutNullStreams } from "node:child_process";
 export interface RunSpawnResponse {
     result: string;
@@ -80,21 +79,25 @@ export declare class Container {
     run(cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
     logs(logOptions?: LogOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string | ChildProcessWithoutNullStreams>;
     exec(cmd: string | string[], options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
+    state(): Promise<any>;
 }
 export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean) => Promise<Container>;
 export declare const createNetwork: (networkOptions: NetworkOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
-export declare const watchContainerStats: (idOrName: string, cb?: (result: any, error: any) => void, interval?: number, options?: any, log?: boolean) => {
-    intervalId: NodeJS.Timer;
-    kill: () => void;
-};
-export declare const watchContainersStats: (idOrNames: string[], cb?: (results: any[], error: any) => void, interval?: number, options?: any, log?: boolean) => {
-    intervalId: NodeJS.Timer;
-    kill: () => void;
-};
-export declare const statsContainer: (idOrName: string, options?: any, log?: boolean) => Promise<any>;
-export declare const statsContainers: (idOrNames: string[], options?: any, log?: boolean) => Promise<any[]>;
 export declare const pushImage: (image: string, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const saveImage: (image: string, output: string, options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const loadImage: (input: string, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const dockerLogin: (username: string, password: string, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, log?: boolean) => Promise<string | ChildProcessWithoutNullStreams>;
+export declare const listContainers: () => Promise<any[]>;
+export interface ContainerStats {
+    ID: string;
+    Container: string;
+    Name: string;
+    CPUPerc: string;
+    MemUsage: string;
+    NetIO: string;
+    BlockIO: string;
+    MemPerc: string;
+    PIDs: string;
+}
+export declare const statsContainers: (idOrNames: string[], options?: any, cb?: (stats: ContainerStats[], error: Error) => void) => Promise<any[] | ChildProcessWithoutNullStreams>;

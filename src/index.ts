@@ -347,6 +347,42 @@ export class Container {
         : ["docker", "exec", this.name, ...cmd];
     return await runSpawn(command, options, cb, waitUntilClose, this.log);
   }
+
+  async state() {
+    const results = (await runSpawn([
+      "docker",
+      "ps",
+      "-a",
+      "--filter",
+      `name=${this.name}`,
+      "--format",
+      `"Names={{.Names}};State={{.State}}"`,
+    ])) as string;
+    const data = results
+      .trim()
+      .split("\n")
+      .map((dataStr) => {
+        let item: any = {};
+        const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+        for (const kv of kvlist) {
+          const [k, v] = kv.split("=");
+          item[k] = v;
+        }
+        return item;
+      })
+      .filter((result) => result.Names == this.name);
+    if (data.length) {
+      return data[0].State;
+    }
+    return "unknown";
+  }
+  async stats(
+    options: any = {},
+    cb = (stats: ContainerStats[], error: Error) => {}
+  ) {
+    options.log = this.log;
+    return statsContainers([this.name], options, cb);
+  }
 }
 
 export const buildImage = async (
@@ -388,158 +424,6 @@ export const createNetwork = async (
     networkOptions.waitUntilClose || true,
     networkOptions.log || false
   );
-};
-
-export const watchContainerStats = (
-  idOrName: string,
-  cb = (result: any, error) => {},
-  interval = 3,
-  options: any = {},
-  log = false
-) => {
-  statsContainer(idOrName, options, log)
-    .then((result) => cb(result, null))
-    .catch((err) => {
-      cb(null, err);
-      clearInterval(intervalId);
-    });
-  const intervalId = setInterval(() => {
-    statsContainer(idOrName, options, log)
-      .then((result) => cb(result, null))
-      .catch((err) => {
-        cb(null, err);
-        clearInterval(intervalId);
-      });
-  }, interval * 1000);
-  return {
-    intervalId,
-    kill: () => clearInterval(intervalId),
-  };
-};
-
-export const watchContainersStats = (
-  idOrNames: string[],
-  cb = (results: any[], error) => {},
-  interval = 3,
-  options: any = {},
-  log = false
-) => {
-  statsContainers(idOrNames, options, log)
-    .then((results) => cb(results, null))
-    .catch((err) => {
-      cb(null, err);
-      clearInterval(intervalId);
-    });
-  const intervalId = setInterval(() => {
-    statsContainers(idOrNames, options, log)
-      .then((results) => cb(results, null))
-      .catch((err) => {
-        cb(null, err);
-        clearInterval(intervalId);
-      });
-  }, interval * 1000);
-  return {
-    intervalId,
-    kill: () => clearInterval(intervalId),
-  };
-};
-
-interface WatchContainersOptions {
-  stream?: boolean;
-  // waitUntilClose?: boolean;
-  log?: boolean;
-  cmdOptions?: any;
-  scb?: (
-    stdout?: string,
-    stderr?: string,
-    error?: Error,
-    code?: number
-  ) => void;
-}
-
-// export const watchContainersStats = async (
-//   idOrNames: string[],
-//   cb = (results: any[], error) => {},
-//   options: WatchContainersOptions = {}
-// ) => {
-//   const stream = "stream" in options ? options.stream : true;
-//   const scb = options.scb || ((stdout, stderr, error, code) => {});
-//   // const waitUntilClose = options.waitUntilClose || true;
-//   const log = options.log || false;
-//   const cmdOptions = options.cmdOptions || {};
-
-//   const args = stream
-//     ? ["docker", "stats", ...idOrNames, "--format", `"{{ json . }}"`]
-//     : [
-//         "docker",
-//         "stats",
-//         ...idOrNames,
-//         "--no-stream",
-//         "--format",
-//         `"{{ json . }}"`,
-//       ];
-//   const childOrResult = await runSpawn(
-//     args,
-//     cmdOptions,
-//     (stdout, stderr, error, code) => {
-//       scb(stdout, stderr, error, code);
-//       if (stream && stdout && stdout.includes("{") && stdout.includes("}")) {
-//         cb(
-//           stdout
-//             .replace("[2J[H", "")
-//             .split("\n")
-//             .filter((item) => item.trim())
-//             .map((item) => JSON.parse(item.slice(1, item.length - 1))),
-//           error
-//         );
-//       }
-//     },
-//     !stream,
-//     log
-//   );
-//   if (stream) {
-//     return childOrResult as ChildProcessWithoutNullStreams;
-//   } else {
-//     const jsonStr = childOrResult as string;
-//     return jsonStr
-//       .slice(1, jsonStr.length - 2)
-//       .split("\n")
-//       .map((item) => JSON.parse(item));
-//   }
-// };
-
-export const statsContainer = async (
-  idOrName: string,
-  options: any = {},
-  log = false
-) => {
-  const results = await statsContainers([idOrName], options, log);
-  return results[0];
-};
-
-export const statsContainers = async (
-  idOrNames: string[],
-  options: any = {},
-  log = false
-) => {
-  let results = [];
-  for (const idOrName of idOrNames) {
-    const cmd = `docker stats ${idOrName.trim()} --no-stream --format "{{ json . }}"`;
-    if (log) {
-      console.log(`> ${cmd}`);
-    }
-    const { stdout, stderr } = await exec(cmd, options);
-    if (stdout) {
-      if (log) {
-        console.log(stdout);
-      }
-      results.push(JSON.parse(stdout));
-    }
-    if (stderr && log) {
-      console.log(stderr);
-    }
-  }
-  return results;
 };
 
 export const pushImage = async (
@@ -587,4 +471,107 @@ export const dockerLogin = async (
     true,
     log
   );
+};
+
+export const listContainers = async () => {
+  const results = (await runSpawn([
+    "docker",
+    "ps",
+    "-a",
+    "--filter",
+    "ID=87b6b173298f",
+    "--format",
+    `"ID={{.ID}};Image={{.Image}};Names={{.Names}};Ports={{.Ports}};State={{.State}};Status={{.Status}};Mounts={{.Mounts}};CreatedAt={{.CreatedAt}}"`,
+  ])) as string;
+  return results
+    .trim()
+    .split("\n")
+    .map((dataStr) => {
+      let item: any = {};
+      const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+      for (const kv of kvlist) {
+        const [k, v] = kv.split("=");
+        item[k] = v;
+      }
+      return item;
+    });
+};
+
+export interface ContainerStats {
+  ID: string;
+  Container: string;
+  Name: string;
+  CPUPerc: string;
+  MemUsage: string;
+  NetIO: string;
+  BlockIO: string;
+  MemPerc: string;
+  PIDs: string;
+}
+
+export const statsContainers = async (
+  idOrNames: string[],
+  options: any = {},
+  cb = (stats: ContainerStats[], error: Error) => {}
+) => {
+  const log = options.log || false;
+  let waitUntilClose = true;
+  if (typeof options.waitUntilClose == "boolean") {
+    waitUntilClose = options.waitUntilClose;
+  }
+  delete options.log;
+  delete options.waitUntilClose;
+  const results = await runSpawn(
+    waitUntilClose
+      ? [
+          "docker",
+          "stats",
+          ...idOrNames,
+          "--no-stream",
+          "--format",
+          `"ID={{.ID}};Container={{.Container}};Name={{.Name}};CPUPerc={{.CPUPerc}};MemUsage={{.MemUsage}};NetIO={{.NetIO}};BlockIO={{.BlockIO}};MemPerc={{.MemPerc}};PIDs={{.PIDs}}"`,
+        ]
+      : [
+          "docker",
+          "stats",
+          ...idOrNames,
+          "--format",
+          `"ID={{.ID}};Container={{.Container}};Name={{.Name}};CPUPerc={{.CPUPerc}};MemUsage={{.MemUsage}};NetIO={{.NetIO}};BlockIO={{.BlockIO}};MemPerc={{.MemPerc}};PIDs={{.PIDs}}"`,
+        ],
+    options,
+    (stdout?: string, stderr?: string, error?: Error, code?: number) => {
+      if (stdout && stdout != "[2J[H") {
+        const stats = stdout
+          .trim()
+          .split("\n")
+          .map((dataStr) => {
+            let item: any = {};
+            const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+            for (const kv of kvlist) {
+              const [k, v] = kv.split("=");
+              item[k] = v;
+            }
+            return item;
+          }) as ContainerStats[];
+        cb(stats, error);
+      }
+    },
+    waitUntilClose,
+    log
+  );
+  if (typeof results == "string") {
+    return results
+      .trim()
+      .split("\n")
+      .map((dataStr) => {
+        let item: any = {};
+        const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+        for (const kv of kvlist) {
+          const [k, v] = kv.split("=");
+          item[k] = v;
+        }
+        return item;
+      }) as any[];
+  }
+  return results as ChildProcessWithoutNullStreams;
 };

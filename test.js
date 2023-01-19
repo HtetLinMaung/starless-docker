@@ -12,14 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _1 = require(".");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        const child = (yield (0, _1.runSpawn)("docker exec -i nginx bash", {}, () => { }, false, true));
-        console.log("do other stuff");
-        child.stdin.write("ls\n");
-        setTimeout(() => {
-            console.log("timeout");
-            child.stdin.write("ls etc\n");
-            child.stdin.end();
-        }, 3000);
+        yield (0, _1.statsContainers)(["nginx", "nginx2"], {
+            waitUntilClose: false,
+        }, (stats) => {
+            console.log(stats);
+        });
     });
 }
 main();

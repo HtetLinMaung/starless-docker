@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dockerLogin = exports.loadImage = exports.saveImage = exports.pushImage = exports.statsContainers = exports.statsContainer = exports.watchContainersStats = exports.watchContainerStats = exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
+exports.statsContainers = exports.listContainers = exports.dockerLogin = exports.loadImage = exports.saveImage = exports.pushImage = exports.createNetwork = exports.runContainer = exports.buildImage = exports.Container = exports.runSpawn = void 0;
 const node_child_process_1 = require("node:child_process");
 const node_util_1 = require("node:util");
 const exec = (0, node_util_1.promisify)(require("node:child_process").exec);
@@ -172,6 +172,36 @@ class Container {
             return yield runSpawn(command, options, cb, waitUntilClose, this.log);
         });
     }
+    state() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const results = (yield runSpawn([
+                "docker",
+                "ps",
+                "-a",
+                "--filter",
+                `name=${this.name}`,
+                "--format",
+                `"Names={{.Names}};State={{.State}}"`,
+            ]));
+            const data = results
+                .trim()
+                .split("\n")
+                .map((dataStr) => {
+                let item = {};
+                const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+                for (const kv of kvlist) {
+                    const [k, v] = kv.split("=");
+                    item[k] = v;
+                }
+                return item;
+            })
+                .filter((result) => result.Names == this.name);
+            if (data.length) {
+                return data[0].State;
+            }
+            return "unknown";
+        });
+    }
 }
 exports.Container = Container;
 const buildImage = (imageOptions, cb = (stdout, stderr, error, code) => { }) => __awaiter(void 0, void 0, void 0, function* () {
@@ -189,74 +219,6 @@ const createNetwork = (networkOptions, cb = (stdout, stderr, error, code) => { }
     return yield runSpawn(`docker network create ${networkOptions.name}`, Object.assign({}, (networkOptions.cmdOptions || {})), cb, networkOptions.waitUntilClose || true, networkOptions.log || false);
 });
 exports.createNetwork = createNetwork;
-const watchContainerStats = (idOrName, cb = (result, error) => { }, interval = 3, options = {}, log = false) => {
-    (0, exports.statsContainer)(idOrName, options, log)
-        .then((result) => cb(result, null))
-        .catch((err) => {
-        cb(null, err);
-        clearInterval(intervalId);
-    });
-    const intervalId = setInterval(() => {
-        (0, exports.statsContainer)(idOrName, options, log)
-            .then((result) => cb(result, null))
-            .catch((err) => {
-            cb(null, err);
-            clearInterval(intervalId);
-        });
-    }, interval * 1000);
-    return {
-        intervalId,
-        kill: () => clearInterval(intervalId),
-    };
-};
-exports.watchContainerStats = watchContainerStats;
-const watchContainersStats = (idOrNames, cb = (results, error) => { }, interval = 3, options = {}, log = false) => {
-    (0, exports.statsContainers)(idOrNames, options, log)
-        .then((results) => cb(results, null))
-        .catch((err) => {
-        cb(null, err);
-        clearInterval(intervalId);
-    });
-    const intervalId = setInterval(() => {
-        (0, exports.statsContainers)(idOrNames, options, log)
-            .then((results) => cb(results, null))
-            .catch((err) => {
-            cb(null, err);
-            clearInterval(intervalId);
-        });
-    }, interval * 1000);
-    return {
-        intervalId,
-        kill: () => clearInterval(intervalId),
-    };
-};
-exports.watchContainersStats = watchContainersStats;
-const statsContainer = (idOrName, options = {}, log = false) => __awaiter(void 0, void 0, void 0, function* () {
-    const results = yield (0, exports.statsContainers)([idOrName], options, log);
-    return results[0];
-});
-exports.statsContainer = statsContainer;
-const statsContainers = (idOrNames, options = {}, log = false) => __awaiter(void 0, void 0, void 0, function* () {
-    let results = [];
-    for (const idOrName of idOrNames) {
-        const cmd = `docker stats ${idOrName.trim()} --no-stream --format "{{ json . }}"`;
-        if (log) {
-            console.log(`> ${cmd}`);
-        }
-        const { stdout, stderr } = yield exec(cmd, options);
-        if (stdout) {
-            if (log) {
-                console.log(stdout);
-            }
-            results.push(JSON.parse(stdout));
-        }
-        if (stderr && log) {
-            console.log(stderr);
-        }
-    }
-    return results;
-});
-exports.statsContainers = statsContainers;
 const pushImage = (image, cb = (stdout, stderr, error, code) => { }, log = false) => __awaiter(void 0, void 0, void 0, function* () {
     return yield runSpawn(`docker push ${image}`, {}, cb, true, log);
 });
@@ -273,3 +235,84 @@ const dockerLogin = (username, password, cb = (stdout, stderr, error, code) => {
     return yield runSpawn(`docker login -u ${username} -p ${password}`, {}, cb, true, log);
 });
 exports.dockerLogin = dockerLogin;
+const listContainers = () => __awaiter(void 0, void 0, void 0, function* () {
+    const results = (yield runSpawn([
+        "docker",
+        "ps",
+        "-a",
+        "--filter",
+        "ID=87b6b173298f",
+        "--format",
+        `"ID={{.ID}};Image={{.Image}};Names={{.Names}};Ports={{.Ports}};State={{.State}};Status={{.Status}};Mounts={{.Mounts}};CreatedAt={{.CreatedAt}}"`,
+    ]));
+    return results
+        .trim()
+        .split("\n")
+        .map((dataStr) => {
+        let item = {};
+        const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+        for (const kv of kvlist) {
+            const [k, v] = kv.split("=");
+            item[k] = v;
+        }
+        return item;
+    });
+});
+exports.listContainers = listContainers;
+const statsContainers = (idOrNames, options = {}, cb = (stats, error) => { }) => __awaiter(void 0, void 0, void 0, function* () {
+    const log = options.log || false;
+    let waitUntilClose = true;
+    if (typeof options.waitUntilClose == "boolean") {
+        waitUntilClose = options.waitUntilClose;
+    }
+    delete options.log;
+    delete options.waitUntilClose;
+    const results = yield runSpawn(waitUntilClose
+        ? [
+            "docker",
+            "stats",
+            ...idOrNames,
+            "--no-stream",
+            "--format",
+            `"ID={{.ID}};Container={{.Container}};Name={{.Name}};CPUPerc={{.CPUPerc}};MemUsage={{.MemUsage}};NetIO={{.NetIO}};BlockIO={{.BlockIO}};MemPerc={{.MemPerc}};PIDs={{.PIDs}}"`,
+        ]
+        : [
+            "docker",
+            "stats",
+            ...idOrNames,
+            "--format",
+            `"ID={{.ID}};Container={{.Container}};Name={{.Name}};CPUPerc={{.CPUPerc}};MemUsage={{.MemUsage}};NetIO={{.NetIO}};BlockIO={{.BlockIO}};MemPerc={{.MemPerc}};PIDs={{.PIDs}}"`,
+        ], options, (stdout, stderr, error, code) => {
+        if (stdout && stdout != "[2J[H") {
+            const stats = stdout
+                .trim()
+                .split("\n")
+                .map((dataStr) => {
+                let item = {};
+                const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+                for (const kv of kvlist) {
+                    const [k, v] = kv.split("=");
+                    item[k] = v;
+                }
+                return item;
+            });
+            cb(stats, error);
+        }
+    }, waitUntilClose, log);
+    if (typeof results == "string") {
+        return results
+            .trim()
+            .split("\n")
+            .map((dataStr) => {
+            let item = {};
+            const kvlist = dataStr.slice(1, dataStr.length - 1).split(";");
+            for (const kv of kvlist) {
+                const [k, v] = kv.split("=");
+                item[k] = v;
+            }
+            return item;
+        });
+    }
+    return results;
+});
+exports.statsContainers = statsContainers;
