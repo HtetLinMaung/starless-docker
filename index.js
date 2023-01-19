@@ -202,6 +202,12 @@ class Container {
             return "unknown";
         });
     }
+    stats(options = {}, cb = (stats, error) => { }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            options.log = this.log;
+            return (0, exports.statsContainers)([this.name], options, cb);
+        });
+    }
 }
 exports.Container = Container;
 const buildImage = (imageOptions, cb = (stdout, stderr, error, code) => { }) => __awaiter(void 0, void 0, void 0, function* () {

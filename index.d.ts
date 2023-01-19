@@ -80,6 +80,7 @@ export declare class Container {
     logs(logOptions?: LogOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void): Promise<string | ChildProcessWithoutNullStreams>;
     exec(cmd: string | string[], options?: any, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean): Promise<string | ChildProcessWithoutNullStreams>;
     state(): Promise<any>;
+    stats(options?: any, cb?: (stats: ContainerStats[], error: Error) => void): Promise<any[] | ChildProcessWithoutNullStreams>;
 }
 export declare const buildImage: (imageOptions: ImageOptions, cb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void) => Promise<string | ChildProcessWithoutNullStreams>;
 export declare const runContainer: (containerOptions: ContainerOptions, cb?: (result: string) => void, ccb?: (stdout?: string, stderr?: string, error?: Error, code?: number) => void, waitUntilClose?: boolean) => Promise<Container>;
